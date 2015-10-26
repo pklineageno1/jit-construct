@@ -27,6 +27,7 @@ int main(int argc, char *argv[])
 	if (argc < 2) err("Usage: jit-x64 <inputfile>");
 	dasm_State *state;
 	initjit(&state, actions);
+	int count=0;
 
 	unsigned int maxpc = 0;
 	int pcstack[MAX_NESTING];
@@ -37,18 +38,38 @@ int main(int argc, char *argv[])
 	|  mov  PTR, rdi      // rdi store 1st argument
 
 	for (char *p = read_file(argv[1]); *p; p++) {
-		switch (*p) {
-		case '>':
-			|  inc  PTR
-			break;
+switch (*p) {
 		case '<':
-			|  dec  PTR
+			count = 1;
+			while(*(++p) == '<') {
+			count++;
+			}
+			p--;
+			|	sub  PTR, count
+			break;
+		case '>':
+			count = 1;
+			while(*(++p) == '>') {
+			count++;
+			}
+			p--;
+			|	add PTR, count
 			break;
 		case '+':
-			|  inc  byte [PTR]
+			count = 1;
+			while( *(++p) == '+'){
+				count++;
+			}
+			p--;
+			|  add  byte [PTR], count
 			break;
 		case '-':
-			|  dec  byte [PTR]
+			count = 1;
+			while( *(++p) == '-'){
+				count++;
+			}
+			p--;
+			|  sub  byte [PTR], count
 			break;
 		case '.':
 			|  movzx edi, byte [PTR]
@@ -76,7 +97,7 @@ int main(int argc, char *argv[])
 			|  cmp  byte [PTR], 0
 			|  jne  =>(*top-1)
 			|=>(*top-2):
-			break;
+			break;		
 		}
 	}
 
